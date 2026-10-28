@@ -1,0 +1,29 @@
+# dependencies
+/node_modules
+/.pnpm-store
+/.pnp
+.pnp.js
+
+# environment variables
+.env.local
+
+# Vercel
+.vercel/
+
+uploads/
+downloads/
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# misc
+.DS_Store
+*.pem
