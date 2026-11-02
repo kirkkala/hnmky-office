@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     const sheet = transformBuffer(fileBuffers[0], parseYear(fields.year))
-    const buffer = workbookFromSheet(sheet)
+    const buffer = workbookFromSheet(sheet, fields.elsa === "1")
 
     return new NextResponse(new Uint8Array(buffer), {
       headers: {

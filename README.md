@@ -13,17 +13,16 @@ Output columns, in order:
 | Column | What is written |
 | --- | --- |
 | Sarja | Series |
+| eLSA-pvm | The source date as shown. `20,09` stays `20,09` and `03.10` stays `03.10`. |
 | Pvm | Date as `dd.mm.yyyy`. A yearless date uses the year from the form. A date that already has a year keeps it. |
-| Kello | Time as `HH:mm`. `18.30` and `9:00` become `18:30` and `09:00`. A time attached to the date is moved here when the time cell is empty. |
-| eLSA Pvm | The source date cell, unchanged |
-| eLSA Kello | The source time cell, unchanged |
+| Kello | Time as in the eLSA sheet. A value such as `15:00` is already `HH:mm` and is left as it is. |
 | Kenttä | Court |
 | Koti | Home team |
 | Vieras | Away team |
 | JOJO | Empty, filled in after download |
 | HUOM | Empty, filled in after download |
 
-`eLSA Pvm` and `eLSA Kello` are a check against the formatted date and time. Other source columns are left out.
+`eLSA-pvm` is a check against the formatted date. A switch above the preview includes it in the preview and the download. It is left out unless that switch is on. Other source columns are left out.
 
 Source headers are matched by these names until the real eLSA export is available:
 

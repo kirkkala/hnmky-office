@@ -2,6 +2,7 @@ import type { Buffer } from "buffer"
 
 import * as XLSX from "xlsx"
 
+import { ELSA_COLUMNS, ELSA_PVM } from "./columns"
 import { formatDateValue } from "./date"
 import {
   API_YEAR_INVALID,
@@ -18,10 +19,9 @@ export interface ExcelSheet {
 // Office file. JOJO and HUOM stay empty; they are filled in after download.
 export const OUTPUT_COLUMNS = [
   "Sarja",
+  ELSA_PVM,
   "Pvm",
   "Kello",
-  "eLSA Pvm",
-  "eLSA Kello",
   "Kenttä",
   "Koti",
   "Vieras",
@@ -30,7 +30,7 @@ export const OUTPUT_COLUMNS = [
 ] as const
 
 type OutputColumn = (typeof OUTPUT_COLUMNS)[number]
-type DataColumn = Exclude<OutputColumn, "JOJO" | "HUOM" | "eLSA Pvm" | "eLSA Kello">
+type DataColumn = Exclude<OutputColumn, "JOJO" | "HUOM" | (typeof ELSA_COLUMNS)[number]>
 
 // Common eLSA header names. Tightened once the real export is available.
 const SOURCE_ALIASES: Record<DataColumn, readonly string[]> = {
@@ -145,7 +145,12 @@ function readText(value: unknown): string {
 function originalCell(row: Record<string, unknown>, header: string | undefined): unknown {
   if (header === undefined) return ""
   const value = row[header]
-  return value == null ? "" : value
+  if (value == null || value === "") return ""
+  // Excel shows a Finnish decimal comma for numeric cells such as 20,09 and 24,1.
+  // A number would come back with a dot, so keep the comma the sheet shows.
+  // Text cells, including "03.10", stay exactly as stored.
+  if (typeof value === "number" && Number.isFinite(value)) return String(value).replace(".", ",")
+  return value
 }
 
 function projectRow(
@@ -170,10 +175,9 @@ function projectRow(
 
   return {
     Sarja: readText(sourceOf.Sarja === undefined ? "" : row[sourceOf.Sarja]),
+    [ELSA_PVM]: originalCell(rawRow, pvmSource),
     Pvm: pvm,
     Kello: kello,
-    "eLSA Pvm": originalCell(rawRow, pvmSource),
-    "eLSA Kello": originalCell(rawRow, kelloSource),
     Kenttä: readText(sourceOf.Kenttä === undefined ? "" : row[sourceOf.Kenttä]),
     Koti: readText(sourceOf.Koti === undefined ? "" : row[sourceOf.Koti]),
     Vieras: readText(sourceOf.Vieras === undefined ? "" : row[sourceOf.Vieras]),
@@ -200,7 +204,7 @@ function readSheet(
 
 /**
  * Reads the first worksheet and projects each game onto the office columns.
- * eLSA Pvm and eLSA Kello keep the source cells unchanged.
+ * eLSA-pvm keeps the source date unchanged. The source time is already HH:mm.
  * JOJO and HUOM are always empty.
  */
 export function transformBuffer(buffer: Buffer, year: number): ExcelSheet {
@@ -228,11 +232,22 @@ export function transformBuffer(buffer: Buffer, year: number): ExcelSheet {
   return { sheetName: dated.sheetName, rows: transformed }
 }
 
-export function workbookFromSheet(sheet: ExcelSheet): Buffer {
+const ELSA_REFERENCE_COLUMNS = new Set<string>(ELSA_COLUMNS)
+
+export function workbookFromSheet(sheet: ExcelSheet, includeElsa = false): Buffer {
+  const header = OUTPUT_COLUMNS.filter(
+    (column) => includeElsa || !ELSA_REFERENCE_COLUMNS.has(column)
+  )
+  const rows = includeElsa
+    ? sheet.rows
+    : sheet.rows.map((row) =>
+        Object.fromEntries(
+          Object.entries(row).filter(([column]) => !ELSA_REFERENCE_COLUMNS.has(column))
+        )
+      )
+
   const workbook = XLSX.utils.book_new()
-  const worksheet = XLSX.utils.json_to_sheet(sheet.rows, {
-    header: [...OUTPUT_COLUMNS],
-  })
+  const worksheet = XLSX.utils.json_to_sheet(rows, { header: [...header] })
   XLSX.utils.book_append_sheet(workbook, worksheet, sheet.sheetName.slice(0, 31))
   return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer
 }

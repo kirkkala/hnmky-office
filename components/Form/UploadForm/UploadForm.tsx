@@ -4,7 +4,9 @@ import DownloadIcon from "@mui/icons-material/Download"
 import Alert from "@mui/material/Alert"
 import AlertTitle from "@mui/material/AlertTitle"
 import Box from "@mui/material/Box"
+import FormControlLabel from "@mui/material/FormControlLabel"
 import MenuItem from "@mui/material/MenuItem"
+import Switch from "@mui/material/Switch"
 import TextField from "@mui/material/TextField"
 import Typography from "@mui/material/Typography"
 import { useState } from "react"
@@ -31,6 +33,7 @@ export default function UploadForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [preview, setPreview] = useState<PreviewResponse | null>(null)
+  const [includeElsa, setIncludeElsa] = useState(false)
 
   const fetchPreview = async (nextFiles: File[], nextYear: string): Promise<void> => {
     const file = nextFiles[0]
@@ -83,6 +86,7 @@ export default function UploadForm() {
       const formData = new FormData()
       formData.append("files", file)
       formData.append("year", year)
+      formData.append("elsa", includeElsa ? "1" : "0")
 
       const response = await fetch("/api/upload", { method: "POST", body: formData })
 
@@ -149,7 +153,26 @@ export default function UploadForm() {
           <Alert severity="success" sx={{ mb: 2 }}>
             Luettu {preview.total} riviä välilehdeltä {preview.sheetName}.
           </Alert>
-          <Preview rows={preview.data} total={preview.total} sheetName={preview.sheetName} />
+          <FormControlLabel
+            sx={{
+              alignItems: "center",
+              ml: 0,
+              "& .MuiFormControlLabel-label": { mb: 0, lineHeight: 1.2 },
+            }}
+            control={
+              <Switch
+                checked={includeElsa}
+                onChange={(event) => setIncludeElsa(event.target.checked)}
+              />
+            }
+            label="Näytä alkuperäinen eLSA-Excelin päivämäärä muunnoksen tarkistusta varten"
+          />
+          <Preview
+            rows={preview.data}
+            total={preview.total}
+            sheetName={preview.sheetName}
+            showElsa={includeElsa}
+          />
           <Box component="form" onSubmit={(event) => void handleDownload(event)} sx={{ mt: 3 }}>
             <Button
               type="submit"

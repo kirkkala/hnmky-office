@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx"
 
+import { ELSA_PVM } from "@/utils/columns"
 import { OUTPUT_COLUMNS, transformBuffer, workbookFromSheet } from "@/utils/excel"
 
 function toBuffer(rows: unknown[][], sheetName = "Ottelut"): Buffer {
@@ -11,10 +12,9 @@ function toBuffer(rows: unknown[][], sheetName = "Ottelut"): Buffer {
 
 const emptyOffice = {
   Sarja: "",
+  [ELSA_PVM]: "",
   Pvm: "",
   Kello: "",
-  "eLSA Pvm": "",
-  "eLSA Kello": "",
   Kenttä: "",
   Koti: "",
   Vieras: "",
@@ -38,8 +38,7 @@ describe("transformBuffer", () => {
           Sarja: "M1D",
           Pvm: "14.12.2026",
           Kello: "18:30",
-          "eLSA Pvm": "14.12",
-          "eLSA Kello": "18:30",
+          [ELSA_PVM]: "14.12",
           Kenttä: "Monnari",
           Koti: "HNMKY",
           Vieras: "BC Nokia",
@@ -48,8 +47,7 @@ describe("transformBuffer", () => {
           ...emptyOffice,
           Pvm: "04.03.2026",
           Kello: "09:00",
-          "eLSA Pvm": 4.03,
-          "eLSA Kello": "9:00",
+          [ELSA_PVM]: "4,03",
           Koti: "HNMKY",
           Vieras: "Pyrintö",
         },
@@ -70,12 +68,32 @@ describe("transformBuffer", () => {
       ...emptyOffice,
       Pvm: "14.12.2026",
       Kello: "18:30",
-      "eLSA Pvm": "14.12",
-      "eLSA Kello": "18.30",
+      [ELSA_PVM]: "14.12",
       Kenttä: "Monnari",
       Koti: "HNMKY",
       Vieras: "BC Nokia",
     })
+  })
+
+  it("keeps the original date text, including a decimal comma", () => {
+    const buffer = toBuffer([
+      ["Pvm", "Klo"],
+      ["20,09", "15:00"],
+      ["03.10", "09:00"],
+      [24.1, "10:45"],
+      [20.09, "12:30"],
+    ])
+
+    const rows = transformBuffer(buffer, 2026).rows
+
+    expect(rows.map((row) => row[ELSA_PVM])).toEqual(["20,09", "03.10", "24,1", "20,09"])
+    expect(rows.map((row) => row.Kello)).toEqual(["15:00", "09:00", "10:45", "12:30"])
+    expect(rows.map((row) => row.Pvm)).toEqual([
+      "20.09.2026",
+      "03.10.2026",
+      "24.10.2026",
+      "20.09.2026",
+    ])
   })
 
   it("moves a time stuck on the date into Kello", () => {
@@ -84,8 +102,7 @@ describe("transformBuffer", () => {
 
     expect(row.Pvm).toBe("28.10.2026")
     expect(row.Kello).toBe("18:30")
-    expect(row["eLSA Pvm"]).not.toBe("28.10.2026")
-    expect(row["eLSA Kello"]).toBe("")
+    expect(row[ELSA_PVM]).not.toBe("28.10.2026")
   })
 
   it("keeps a separate time when the date also has one", () => {
@@ -98,7 +115,6 @@ describe("transformBuffer", () => {
 
     expect(row.Pvm).toBe("28.10.2026")
     expect(row.Kello).toBe("19:00")
-    expect(row["eLSA Kello"]).toBe("19:00")
   })
 
   it("names the row when a date cell cannot be read", () => {
@@ -130,7 +146,7 @@ describe("transformBuffer", () => {
       ["M1D", "14.12", "18:30", "Monnari", "HNMKY", "BC Nokia"],
     ])
 
-    const written = workbookFromSheet(transformBuffer(buffer, 2026))
+    const written = workbookFromSheet(transformBuffer(buffer, 2026), true)
     const workbook = XLSX.read(written, { type: "buffer" })
     const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[workbook.SheetNames[0]], {
       header: 1,
@@ -139,7 +155,23 @@ describe("transformBuffer", () => {
 
     expect(rows).toEqual([
       [...OUTPUT_COLUMNS],
-      ["M1D", "14.12.2026", "18:30", "14.12", "18:30", "Monnari", "HNMKY", "BC Nokia", "", ""],
+      ["M1D", "14.12", "14.12.2026", "18:30", "Monnari", "HNMKY", "BC Nokia", "", ""],
     ])
+  })
+
+  it("leaves the eLSA reference columns out of the download unless asked", () => {
+    const buffer = toBuffer([
+      ["Sarja", "Pvm", "Kello", "Kenttä", "Koti", "Vieras"],
+      ["M1D", "14.12", "18:30", "Monnari", "HNMKY", "BC Nokia"],
+    ])
+
+    const written = workbookFromSheet(transformBuffer(buffer, 2026))
+    const workbook = XLSX.read(written, { type: "buffer" })
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[workbook.SheetNames[0]], {
+      header: 1,
+      defval: "",
+    })
+
+    expect(rows[0]).toEqual(["Sarja", "Pvm", "Kello", "Kenttä", "Koti", "Vieras", "JOJO", "HUOM"])
   })
 })

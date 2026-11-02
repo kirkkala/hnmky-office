@@ -9,10 +9,13 @@ import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
 import Typography from "@mui/material/Typography"
 
+import { ELSA_COLUMNS } from "@/utils/columns"
+
 interface PreviewProps {
   rows: Record<string, unknown>[]
   total: number
   sheetName: string
+  showElsa: boolean
 }
 
 function cellText(value: unknown): string {
@@ -23,10 +26,12 @@ function cellText(value: unknown): string {
   return JSON.stringify(value)
 }
 
-export default function Preview({ rows, total, sheetName }: PreviewProps) {
+export default function Preview({ rows, total, sheetName, showElsa }: PreviewProps) {
   if (!rows.length) return null
 
-  const columns = Object.keys(rows[0])
+  const columns = Object.keys(rows[0]).filter(
+    (column) => showElsa || !ELSA_COLUMNS.some((name) => name === column)
+  )
   const hiddenCount = total - rows.length
 
   return (
