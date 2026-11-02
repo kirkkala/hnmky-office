@@ -123,22 +123,24 @@ export default function UploadForm() {
         multiple={false}
       />
 
-      <TextField
-        select
-        id="year"
-        label="Vuosi"
-        value={year}
-        onChange={(event) => handleYearChange(event.target.value)}
-        helperText="eLSA:n excelissä ei ole päivämääriä, valitse oikea vuosi."
-        fullWidth
-        sx={{ mb: 3 }}
-      >
-        {years.map((option) => (
-          <MenuItem key={option} value={String(option)}>
-            {option}
-          </MenuItem>
-        ))}
-      </TextField>
+      {files.length > 0 && (
+        <TextField
+          select
+          id="year"
+          label="Vuosi"
+          value={year}
+          onChange={(event) => handleYearChange(event.target.value)}
+          helperText="eLSA:n excelissä ei ole päivämääriä, valitse oikea vuosi."
+          fullWidth
+          sx={{ mb: 3 }}
+        >
+          {years.map((option) => (
+            <MenuItem key={option} value={String(option)}>
+              {option}
+            </MenuItem>
+          ))}
+        </TextField>
+      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
