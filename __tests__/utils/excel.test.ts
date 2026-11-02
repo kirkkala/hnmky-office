@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx"
 
-import { transformBuffer } from "@/utils/excel"
+import { OUTPUT_COLUMNS, transformBuffer, workbookFromSheet } from "@/utils/excel"
 
 function toBuffer(rows: unknown[][], sheetName = "Ottelut"): Buffer {
   const sheet = XLSX.utils.aoa_to_sheet(rows)
@@ -9,53 +9,96 @@ function toBuffer(rows: unknown[][], sheetName = "Ottelut"): Buffer {
   return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer
 }
 
+const emptyOffice = {
+  Sarja: "",
+  Pvm: "",
+  Kello: "",
+  "eLSA Pvm": "",
+  "eLSA Kello": "",
+  Kenttä: "",
+  Koti: "",
+  Vieras: "",
+  JOJO: "",
+  HUOM: "",
+}
+
 describe("transformBuffer", () => {
-  it("formats dates and leaves the other cells as they are", () => {
+  it("projects games onto the office columns and formats dates", () => {
     const buffer = toBuffer([
-      ["Pvm", "Klo", "Koti", "Pisteet", "Huomio"],
-      ["14.12", "18:30", "HNMKY", 12.5, "14.12.2025"],
-      [4.03, "09:00", "HNMKY", 2, "14.12"],
+      ["Sarja", "Pvm", "Klo", "Kenttä", "Koti", "Vieras", "Pisteet", "Huomio"],
+      ["M1D", "14.12", "18:30", "Monnari", "HNMKY", "BC Nokia", 12.5, "14.12.2025"],
+      ["", 4.03, "9:00", "", "HNMKY", "Pyrintö", 2, "14.12"],
     ])
 
     expect(transformBuffer(buffer, 2026)).toEqual({
       sheetName: "Ottelut",
       rows: [
         {
+          ...emptyOffice,
+          Sarja: "M1D",
           Pvm: "14.12.2026",
-          Klo: "18:30",
+          Kello: "18:30",
+          "eLSA Pvm": "14.12",
+          "eLSA Kello": "18:30",
+          Kenttä: "Monnari",
           Koti: "HNMKY",
-          Pisteet: 12.5,
-          Huomio: "14.12.2025",
+          Vieras: "BC Nokia",
         },
         {
+          ...emptyOffice,
           Pvm: "04.03.2026",
-          Klo: "09:00",
+          Kello: "09:00",
+          "eLSA Pvm": 4.03,
+          "eLSA Kello": "9:00",
           Koti: "HNMKY",
-          Pisteet: 2,
-          Huomio: "14.12",
+          Vieras: "Pyrintö",
         },
       ],
     })
   })
 
-  it("drops the index, LiveStats and result columns", () => {
+  it("accepts common eLSA header names and leaves JOJO and HUOM empty", () => {
     const buffer = toBuffer([
-      ["#", "Pvm", "Klo", "Koti", "Tulos", "LiveStats"],
-      [1, "14.12", "18:30", "HNMKY", "33-50", "yes"],
-      [2, "4.3", "09:00", "HNMKY", "", ""],
+      ["#", "Päivä", "Aika", "Halli", "Kotijoukkue", "Vierasjoukkue", "Tulos", "JOJO", "Huom"],
+      [1, "14.12", "18.30", "Monnari", "HNMKY", "BC Nokia", "33-50", "täytetty", "muistiinpano"],
     ])
 
-    expect(transformBuffer(buffer, 2026).rows).toEqual([
-      { Pvm: "14.12.2026", Klo: "18:30", Koti: "HNMKY" },
-      { Pvm: "04.03.2026", Klo: "09:00", Koti: "HNMKY" },
-    ])
+    const row = transformBuffer(buffer, 2026).rows[0]
+
+    expect(Object.keys(row)).toEqual([...OUTPUT_COLUMNS])
+    expect(row).toEqual({
+      ...emptyOffice,
+      Pvm: "14.12.2026",
+      Kello: "18:30",
+      "eLSA Pvm": "14.12",
+      "eLSA Kello": "18.30",
+      Kenttä: "Monnari",
+      Koti: "HNMKY",
+      Vieras: "BC Nokia",
+    })
   })
 
-  it("formats a real Excel date cell", () => {
+  it("moves a time stuck on the date into Kello", () => {
     const buffer = toBuffer([["Pvm"], [new Date(2026, 9, 28, 18, 30)]])
-    const result = transformBuffer(buffer, 2026)
+    const row = transformBuffer(buffer, 2026).rows[0]
 
-    expect(result.rows[0].Pvm).toBe("28.10.2026 18:30")
+    expect(row.Pvm).toBe("28.10.2026")
+    expect(row.Kello).toBe("18:30")
+    expect(row["eLSA Pvm"]).not.toBe("28.10.2026")
+    expect(row["eLSA Kello"]).toBe("")
+  })
+
+  it("keeps a separate time when the date also has one", () => {
+    const buffer = toBuffer([
+      ["Pvm", "Klo"],
+      [new Date(2026, 9, 28, 18, 30), "19:00"],
+    ])
+
+    const row = transformBuffer(buffer, 2026).rows[0]
+
+    expect(row.Pvm).toBe("28.10.2026")
+    expect(row.Kello).toBe("19:00")
+    expect(row["eLSA Kello"]).toBe("19:00")
   })
 
   it("names the row when a date cell cannot be read", () => {
@@ -68,5 +111,35 @@ describe("transformBuffer", () => {
     const buffer = toBuffer([["Pvm", "Klo"]])
 
     expect(() => transformBuffer(buffer, 2026)).toThrow("Excelistä ei löytynyt rivejä")
+  })
+
+  it("names the headers it could not match", () => {
+    const buffer = toBuffer([
+      ["Foo", "Bar"],
+      ["a", "b"],
+    ])
+
+    expect(() => transformBuffer(buffer, 2026)).toThrow(
+      "Excelin sarakkeita ei tunnistettu (Foo, Bar)"
+    )
+  })
+
+  it("writes the office header row", () => {
+    const buffer = toBuffer([
+      ["Sarja", "Pvm", "Kello", "Kenttä", "Koti", "Vieras"],
+      ["M1D", "14.12", "18:30", "Monnari", "HNMKY", "BC Nokia"],
+    ])
+
+    const written = workbookFromSheet(transformBuffer(buffer, 2026))
+    const workbook = XLSX.read(written, { type: "buffer" })
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[workbook.SheetNames[0]], {
+      header: 1,
+      defval: "",
+    })
+
+    expect(rows).toEqual([
+      [...OUTPUT_COLUMNS],
+      ["M1D", "14.12.2026", "18:30", "14.12", "18:30", "Monnari", "HNMKY", "BC Nokia", "", ""],
+    ])
   })
 })

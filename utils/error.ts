@@ -1,6 +1,9 @@
 export const EXCEL_VALIDATION_ERROR =
   "Excelistä ei löytynyt rivejä. Tarkista, että ensimmäisellä välilehdellä on otsikkorivi ja tietoja."
 
+export const EXCEL_COLUMNS_ERROR = (columns: string) =>
+  `Excelin sarakkeita ei tunnistettu (${columns}). Tuloste odottaa sarakkeita Sarja, Pvm, Kello, Kenttä, Koti ja Vieras.`
+
 export const EXCEL_DATE_FORMAT_ERROR = (date: string | number) =>
   `Odottamaton päivämäärämuoto: ${String(date)}`
 

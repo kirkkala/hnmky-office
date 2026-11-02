@@ -154,11 +154,9 @@ export default function UploadForm() {
             <Button
               type="submit"
               disabled={loading}
-              Icon={DownloadIcon}
-              label="Lataa Excel"
-              description="Tallenna muunnettu tiedosto omalle tietokoneelle."
+              description='Paina "Lataa muunnettu Excel" tallentaaksesi muunnetun tiedosto omalle tietokoneellesi.'
             >
-              {loading ? "Käsitellään..." : "Lataa Excel"}
+              {loading ? "Käsitellään..." : "Lataa muunnettu Excel"}
             </Button>
           </Box>
         </>

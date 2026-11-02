@@ -34,6 +34,7 @@ export default function Preview({ rows, total, sheetName }: PreviewProps) {
       sx={{
         mt: 3,
         width: "100vw",
+        maxWidth: 1600,
         position: "relative",
         left: "50%",
         transform: "translateX(-50%)",

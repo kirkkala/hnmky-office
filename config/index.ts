@@ -29,9 +29,9 @@ const NOTIFICATION: {
 const TOOLS = [
   {
     path: "/games",
-    title: "Otteluuiden siirtohässäkkä",
+    title: "Otteluiden siirtohässäkkä",
     description:
-      "Siirrä kaikkien joukkueiden ottelut yhdestä eLSA-Excelistä järjestelmään, jolla ottelut organisoidaan.",
+      "Muunna joukkueiden ottelut eLSA-Excelistä muotoon, jolla otteluita voi organisoida.",
     action: "Avaa työkalu",
   },
 ] as const
