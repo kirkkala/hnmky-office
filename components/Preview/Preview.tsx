@@ -7,14 +7,19 @@ import TableCell from "@mui/material/TableCell"
 import TableContainer from "@mui/material/TableContainer"
 import TableHead from "@mui/material/TableHead"
 import TableRow from "@mui/material/TableRow"
+import ToggleButton from "@mui/material/ToggleButton"
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
+import { useState } from "react"
 
 import { ELSA_COLUMNS } from "@/utils/columns"
+
+const PREVIEW_LIMITS = [10, 25, 100] as const
+type PreviewLimit = (typeof PREVIEW_LIMITS)[number] | "all"
 
 interface PreviewProps {
   rows: Record<string, unknown>[]
   total: number
-  sheetName: string
   showElsa: boolean
 }
 
@@ -26,13 +31,17 @@ function cellText(value: unknown): string {
   return JSON.stringify(value)
 }
 
-export default function Preview({ rows, total, sheetName, showElsa }: PreviewProps) {
+export default function Preview({ rows, total, showElsa }: PreviewProps) {
+  const [limit, setLimit] = useState<PreviewLimit>(10)
+
   if (!rows.length) return null
 
   const columns = Object.keys(rows[0]).filter(
     (column) => showElsa || !ELSA_COLUMNS.some((name) => name === column)
   )
-  const hiddenCount = total - rows.length
+  const choices = PREVIEW_LIMITS.filter((option) => option < rows.length)
+  const active = choices.some((option) => option === limit) ? limit : "all"
+  const visibleRows = active === "all" ? rows : rows.slice(0, active)
 
   return (
     <Box
@@ -47,12 +56,31 @@ export default function Preview({ rows, total, sheetName, showElsa }: PreviewPro
       }}
     >
       <Typography variant="h2" sx={{ mb: 1.5, display: "flex", alignItems: "center", gap: 1 }}>
-        <PreviewIcon /> Esikatselu, {sheetName}
+        <PreviewIcon /> Esikatselu, {visibleRows.length}/{total} riviä
       </Typography>
-      {hiddenCount > 0 && (
-        <Typography color="text.secondary" sx={{ mb: 1.5 }}>
-          Näytetään {rows.length} / {total} riviä. Ladattava tiedosto sisältää kaikki rivit.
-        </Typography>
+      {choices.length > 0 && (
+        <Box sx={{ mb: 1.5, display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Typography component="span" sx={{ mb: 0, lineHeight: 1.2 }}>
+            Näytä
+          </Typography>
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={active}
+            sx={{ "& .MuiToggleButton-root": { textTransform: "none" } }}
+            onChange={(_, next: PreviewLimit | null) => {
+              if (next !== null) setLimit(next)
+            }}
+            aria-label="Esikatselun rivimäärä"
+          >
+            {choices.map((option) => (
+              <ToggleButton key={option} value={option}>
+                {option}
+              </ToggleButton>
+            ))}
+            <ToggleButton value="all">Kaikki</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
       )}
       <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 480 }}>
         <Table stickyHeader size="small">
@@ -64,7 +92,7 @@ export default function Preview({ rows, total, sheetName, showElsa }: PreviewPro
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map((row, index) => (
+            {visibleRows.map((row, index) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: sheet rows have no stable id
               <TableRow key={index} hover>
                 {columns.map((column) => (

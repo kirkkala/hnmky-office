@@ -6,7 +6,7 @@ Helper tools for the HNMKY office. The home page lists the tools. The only tool 
 
 `/games` reads the first worksheet of an eLSA Excel export (`.xlsx` or `.xls`) and builds a sheet for the office.
 
-The form asks for a year — the previous, current, or next year — because eLSA dates are often only a day and a month, such as `14.12` or `4.3`. The preview updates when the file or the year changes. It shows the first 100 rows. Download saves every row as `hnmky-office.xlsx`.
+The form asks for a year — the previous, current, or next year — because eLSA dates are often only a day and a month, such as `14.12` or `4.3`. The preview updates when the file or the year changes. It can show 10, 25, or 100 rows when the sheet is larger than that, or every row. Download always saves every row as `hnmky-office.xlsx`.
 
 Output columns, in order:
 

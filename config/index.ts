@@ -10,10 +10,6 @@ const SITE_CONFIG = {
   },
 } as const
 
-// How many transformed rows the preview table renders. The download still
-// contains every row.
-const PREVIEW_ROW_LIMIT = 100
-
 // Site-wide banner. Set `enabled: true` to show it on the page.
 const NOTIFICATION: {
   enabled: boolean
@@ -38,4 +34,4 @@ const TOOLS = [
 
 const PAGES = [{ path: "/", label: "Etusivu" }] as const
 
-export { SITE_CONFIG, PREVIEW_ROW_LIMIT, NOTIFICATION, TOOLS, PAGES }
+export { SITE_CONFIG, NOTIFICATION, TOOLS, PAGES }

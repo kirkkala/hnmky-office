@@ -18,7 +18,6 @@ import Button from "../Button/Button"
 import FileUpload from "../FileUpload/FileUpload"
 
 interface PreviewResponse {
-  sheetName: string
   total: number
   data: Record<string, unknown>[]
   message?: string
@@ -151,7 +150,7 @@ export default function UploadForm() {
       {preview && !error && (
         <>
           <Alert severity="success" sx={{ mb: 2 }}>
-            Luettu {preview.total} riviä välilehdeltä {preview.sheetName}.
+            Luettu {preview.total} {preview.total === 1 ? "rivi" : "riviä"}.
           </Alert>
           <FormControlLabel
             sx={{
@@ -170,7 +169,6 @@ export default function UploadForm() {
           <Preview
             rows={preview.data}
             total={preview.total}
-            sheetName={preview.sheetName}
             showElsa={includeElsa}
           />
           <Box component="form" onSubmit={(event) => void handleDownload(event)} sx={{ mt: 3 }}>

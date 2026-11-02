@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-import { PREVIEW_ROW_LIMIT } from "@/config"
 import { API_FILE_MISSING, formatErrorMessage, logError } from "@/utils/error"
 import { parseYear, transformBuffer } from "@/utils/excel"
 import { parseFormData } from "@/utils/formData"
@@ -19,7 +18,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       sheetName: sheet.sheetName,
       total: sheet.rows.length,
-      data: sheet.rows.slice(0, PREVIEW_ROW_LIMIT),
+      data: sheet.rows,
     })
   } catch (error) {
     logError(error)
