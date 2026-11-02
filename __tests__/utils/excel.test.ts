@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx"
 
 import { ELSA_PVM } from "@/utils/columns"
-import { OUTPUT_COLUMNS, transformBuffer, workbookFromSheet } from "@/utils/excel"
+import { OUTPUT_COLUMNS, datesNeedYear, transformBuffer, workbookFromSheet } from "@/utils/excel"
 
 function toBuffer(rows: unknown[][], sheetName = "Ottelut"): Buffer {
   const sheet = XLSX.utils.aoa_to_sheet(rows)
@@ -121,6 +121,18 @@ describe("transformBuffer", () => {
     const buffer = toBuffer([["Pvm"], ["ei päivää"]])
 
     expect(() => transformBuffer(buffer, 2026)).toThrow('Rivi 2: Sarake "Pvm"')
+  })
+
+  it("needs a year when dates have only a day and month", () => {
+    const buffer = toBuffer([["Pvm"], ["20,09"], ["03.10"], [24.1]])
+
+    expect(datesNeedYear(buffer)).toBe(true)
+  })
+
+  it("does not need a year when every date already has one", () => {
+    const buffer = toBuffer([["Pvm"], ["14.12.2026"], ["3.10.2026"]])
+
+    expect(datesNeedYear(buffer)).toBe(false)
   })
 
   it("rejects an empty sheet", () => {

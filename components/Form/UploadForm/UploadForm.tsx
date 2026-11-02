@@ -18,8 +18,9 @@ import Button from "../Button/Button"
 import FileUpload from "../FileUpload/FileUpload"
 
 interface PreviewResponse {
-  total: number
-  data: Record<string, unknown>[]
+  needsYear?: boolean
+  total?: number
+  data?: Record<string, unknown>[]
   message?: string
 }
 
@@ -27,7 +28,8 @@ export default function UploadForm() {
   const currentYear = new Date().getFullYear()
   const years = [currentYear - 1, currentYear, currentYear + 1]
 
-  const [year, setYear] = useState(String(currentYear))
+  const [year, setYear] = useState("")
+  const [needsYear, setNeedsYear] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -56,6 +58,13 @@ export default function UploadForm() {
         throw new Error(data.message || "Excelin lukeminen epäonnistui")
       }
 
+      if (data.needsYear && !nextYear) {
+        setNeedsYear(true)
+        setPreview(null)
+        return
+      }
+
+      setNeedsYear(Boolean(data.needsYear))
       setPreview(data)
     } catch (err) {
       setPreview(null)
@@ -65,7 +74,9 @@ export default function UploadForm() {
 
   const handleFilesChange = (nextFiles: File[]): void => {
     setFiles(nextFiles)
-    void fetchPreview(nextFiles, year)
+    setYear("")
+    setNeedsYear(false)
+    void fetchPreview(nextFiles, "")
   }
 
   const handleYearChange = (nextYear: string): void => {
@@ -123,17 +134,20 @@ export default function UploadForm() {
         multiple={false}
       />
 
-      {files.length > 0 && (
+      {needsYear && (
         <TextField
           select
           id="year"
           label="Vuosi"
           value={year}
           onChange={(event) => handleYearChange(event.target.value)}
-          helperText="eLSA:n excelissä ei ole päivämääriä, valitse oikea vuosi."
+          helperText="Ladatussa Excelissä ei ole vuotta. Valitse oikea vuosi."
           fullWidth
           sx={{ mb: 3 }}
         >
+          <MenuItem value="" disabled>
+            Valitse vuosi
+          </MenuItem>
           {years.map((option) => (
             <MenuItem key={option} value={String(option)}>
               {option}
@@ -149,7 +163,7 @@ export default function UploadForm() {
         </Alert>
       )}
 
-      {preview && !error && (
+      {preview?.data && !error && (
         <>
           <Alert severity="success" sx={{ mb: 2 }}>
             Luettu {preview.total} {preview.total === 1 ? "rivi" : "riviä"}.
@@ -168,7 +182,7 @@ export default function UploadForm() {
             }
             label="Näytä alkuperäinen eLSA-Excelin päivämäärä muunnoksen tarkistusta varten"
           />
-          <Preview rows={preview.data} total={preview.total} showElsa={includeElsa} />
+          <Preview rows={preview.data ?? []} total={preview.total ?? 0} showElsa={includeElsa} />
           <Box component="form" onSubmit={(event) => void handleDownload(event)} sx={{ mt: 3 }}>
             <Button
               type="submit"

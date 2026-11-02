@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 import { API_FILE_MISSING, formatErrorMessage, logError } from "@/utils/error"
-import { parseYear, transformBuffer, workbookFromSheet } from "@/utils/excel"
+import { datesNeedYear, parseYear, transformBuffer, workbookFromSheet } from "@/utils/excel"
 import { parseFormData } from "@/utils/formData"
 
 export async function POST(request: NextRequest) {
@@ -13,7 +13,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: API_FILE_MISSING }, { status: 400 })
     }
 
-    const sheet = transformBuffer(fileBuffers[0], parseYear(fields.year))
+    const source = fileBuffers[0]
+    const year = datesNeedYear(source) ? parseYear(fields.year) : new Date().getFullYear()
+    const sheet = transformBuffer(source, year)
     const buffer = workbookFromSheet(sheet, fields.elsa === "1")
 
     return new NextResponse(new Uint8Array(buffer), {

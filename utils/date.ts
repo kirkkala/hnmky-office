@@ -121,6 +121,17 @@ function formatDateObject(value: Date): string {
   )
 }
 
+/** A day and month with no year, such as `20,09`, `03.10`, or the number `24.1`. */
+export function isYearlessDate(value: unknown): boolean {
+  if (value == null || value === "" || value instanceof Date) return false
+  if (typeof value === "number") return Number.isFinite(value)
+  if (typeof value !== "string") return false
+
+  const text = value.trim()
+  if (!text || FINNISH_DATE.test(text) || ISO_DATE.test(text)) return false
+  return SHORT_DATE.test(text)
+}
+
 /**
  * Returns a date as `dd.mm.yyyy`, or `dd.mm.yyyy HH:mm` when a time is present.
  * Returns null when the value is not a date and should be left unchanged.

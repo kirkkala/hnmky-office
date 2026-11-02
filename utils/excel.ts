@@ -3,7 +3,7 @@ import type { Buffer } from "buffer"
 import * as XLSX from "xlsx"
 
 import { ELSA_COLUMNS, ELSA_PVM } from "./columns"
-import { formatDateValue } from "./date"
+import { formatDateValue, isYearlessDate } from "./date"
 import {
   API_YEAR_INVALID,
   EXCEL_COLUMNS_ERROR,
@@ -200,6 +200,17 @@ function readSheet(
   })
 
   return { sheetName, rows }
+}
+
+/** True when a date cell has a day and month but no year. */
+export function datesNeedYear(buffer: Buffer): boolean {
+  const { rows } = readSheet(buffer, true)
+  if (rows.length === 0) return false
+
+  const pvm = sourceColumns(headerIndex(rows[0])).Pvm
+  if (!pvm) return false
+
+  return rows.some((row) => isYearlessDate(row[pvm]))
 }
 
 /**
