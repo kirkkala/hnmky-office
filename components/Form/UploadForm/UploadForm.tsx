@@ -1,6 +1,5 @@
 "use client"
 
-import DownloadIcon from "@mui/icons-material/Download"
 import Alert from "@mui/material/Alert"
 import AlertTitle from "@mui/material/AlertTitle"
 import Box from "@mui/material/Box"
@@ -26,7 +25,7 @@ interface PreviewResponse {
 
 export default function UploadForm() {
   const currentYear = new Date().getFullYear()
-  const years = [currentYear - 1, currentYear, currentYear + 1]
+  const years = [currentYear, currentYear + 1]
 
   const [year, setYear] = useState("")
   const [needsYear, setNeedsYear] = useState(false)
@@ -127,12 +126,7 @@ export default function UploadForm() {
         Lisää eLSA-Excel ja saat vähän paremman pelien asettelua varten.
       </Typography>
 
-      <FileUpload
-        files={files}
-        onFilesChange={handleFilesChange}
-        label="eLSA Excel-tiedosto"
-        multiple={false}
-      />
+      <FileUpload files={files} onFilesChange={handleFilesChange} label="eLSA Excel-tiedosto" />
 
       {needsYear && (
         <TextField
@@ -184,11 +178,7 @@ export default function UploadForm() {
           />
           <Preview rows={preview.data ?? []} total={preview.total ?? 0} showElsa={includeElsa} />
           <Box component="form" onSubmit={(event) => void handleDownload(event)} sx={{ mt: 3 }}>
-            <Button
-              type="submit"
-              disabled={loading}
-              description='Paina "Lataa muunnettu Excel" tallentaaksesi muunnetun tiedosto omalle tietokoneellesi.'
-            >
+            <Button type="submit" disabled={loading}>
               {loading ? "Käsitellään..." : "Lataa muunnettu Excel"}
             </Button>
           </Box>

@@ -12,7 +12,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
 import { useState } from "react"
 
-import { ELSA_COLUMNS } from "@/utils/columns"
+import { ELSA_PVM } from "@/utils/columns"
 
 const PREVIEW_LIMITS = [10, 25, 100] as const
 type PreviewLimit = (typeof PREVIEW_LIMITS)[number] | "all"
@@ -36,9 +36,7 @@ export default function Preview({ rows, total, showElsa }: PreviewProps) {
 
   if (!rows.length) return null
 
-  const columns = Object.keys(rows[0]).filter(
-    (column) => showElsa || !ELSA_COLUMNS.some((name) => name === column)
-  )
+  const columns = Object.keys(rows[0]).filter((column) => showElsa || column !== ELSA_PVM)
   const choices = PREVIEW_LIMITS.filter((option) => option < rows.length)
   const active = choices.some((option) => option === limit) ? limit : "all"
   const visibleRows = active === "all" ? rows : rows.slice(0, active)

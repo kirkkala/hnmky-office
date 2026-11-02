@@ -7,78 +7,55 @@ const createMockFile = (name: string, size = 1024) =>
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   })
 
-const mockProps = {
-  label: "eLSA excel tiedosto",
-  description: "Valitse Excel tiedosto",
-  files: [] as File[],
-  onFilesChange: vi.fn(),
-}
-
 describe("FileUpload", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it("renders an accessible file input and description", () => {
-    render(<FileUpload {...mockProps} />)
+  it("renders an accessible file input", () => {
+    render(<FileUpload label="eLSA excel tiedosto" files={[]} onFilesChange={vi.fn()} />)
     expect(screen.getByLabelText("eLSA excel tiedosto")).toBeInTheDocument()
-    expect(screen.getByText("Valitse Excel tiedosto")).toBeInTheDocument()
   })
 
   it("shows dropzone instructions when no files", () => {
-    render(<FileUpload {...mockProps} />)
+    render(<FileUpload files={[]} onFilesChange={vi.fn()} />)
     expect(screen.getByText("Pudota eLSA-Excel tai klikkaa valitaksesi")).toBeInTheDocument()
     expect(screen.getByText("Tuetut tiedostomuodot: .xlsx")).toBeInTheDocument()
   })
 
-  it("displays uploaded files as chips", () => {
-    const files = [createMockFile("test1.xlsx"), createMockFile("test2.xlsx")]
-    render(<FileUpload {...mockProps} files={files} />)
+  it("displays the uploaded file", () => {
+    render(<FileUpload files={[createMockFile("test.xlsx")]} onFilesChange={vi.fn()} />)
 
-    expect(screen.getByText("test1.xlsx")).toBeInTheDocument()
-    expect(screen.getByText("test2.xlsx")).toBeInTheDocument()
-    expect(screen.getByText("2 tiedostoa lisätty")).toBeInTheDocument()
+    expect(screen.getByText("test.xlsx")).toBeInTheDocument()
+    expect(screen.getByText("Tiedosto lisätty")).toBeInTheDocument()
   })
 
-  it("calls onFilesChange when files are selected via input", async () => {
+  it("calls onFilesChange when a file is selected", async () => {
     const onFilesChange = vi.fn()
-    render(<FileUpload {...mockProps} onFilesChange={onFilesChange} />)
+    render(<FileUpload files={[]} onFilesChange={onFilesChange} />)
 
-    const input = screen.getByTestId("file-input")
-    const file = createMockFile("test.xlsx")
-
-    fireEvent.change(input, { target: { files: [file] } })
+    fireEvent.change(screen.getByTestId("file-input"), {
+      target: { files: [createMockFile("test.xlsx")] },
+    })
 
     await waitFor(() => {
       expect(onFilesChange).toHaveBeenCalled()
     })
   })
 
-  it("allows removing individual files", () => {
+  it("removes the file", () => {
     const onFilesChange = vi.fn()
-    const files = [createMockFile("test1.xlsx"), createMockFile("test2.xlsx")]
-    render(<FileUpload {...mockProps} files={files} onFilesChange={onFilesChange} />)
+    const file = createMockFile("test.xlsx")
+    render(<FileUpload files={[file]} onFilesChange={onFilesChange} />)
 
-    const chip = screen.getByText("test1.xlsx").closest(".MuiChip-root")
+    const chip = screen.getByText("test.xlsx").closest(".MuiChip-root")
     const deleteIcon = chip?.querySelector(".MuiChip-deleteIcon")
     expect(deleteIcon).toBeInTheDocument()
     if (!deleteIcon) throw new Error("delete icon missing")
     fireEvent.click(deleteIcon)
 
-    expect(onFilesChange).toHaveBeenCalledWith([files[1]])
+    expect(onFilesChange).toHaveBeenCalledWith([])
   })
 
-  it("replaces the file when only one file is accepted", async () => {
+  it("replaces the file when another one is chosen", async () => {
     const onFilesChange = vi.fn()
-    const existingFile = createMockFile("old.xlsx")
-    render(
-      <FileUpload
-        {...mockProps}
-        files={[existingFile]}
-        multiple={false}
-        onFilesChange={onFilesChange}
-      />
-    )
+    render(<FileUpload files={[createMockFile("old.xlsx")]} onFilesChange={onFilesChange} />)
 
     fireEvent.change(screen.getByTestId("file-input"), {
       target: { files: [createMockFile("new.xlsx")] },

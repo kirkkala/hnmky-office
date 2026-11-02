@@ -2,7 +2,7 @@ import type { Buffer } from "buffer"
 
 import * as XLSX from "xlsx"
 
-import { ELSA_COLUMNS, ELSA_PVM } from "./columns"
+import { ELSA_PVM } from "./columns"
 import { formatDateValue, isYearlessDate } from "./date"
 import {
   API_YEAR_INVALID,
@@ -30,21 +30,19 @@ export const OUTPUT_COLUMNS = [
 ] as const
 
 type OutputColumn = (typeof OUTPUT_COLUMNS)[number]
-type DataColumn = Exclude<OutputColumn, "JOJO" | "HUOM" | (typeof ELSA_COLUMNS)[number]>
+type DataColumn = Exclude<OutputColumn, "JOJO" | "HUOM" | typeof ELSA_PVM>
 
-// Common eLSA header names. Tightened once the real export is available.
+// Headers on the eLSA sheet. Kello is the same column as Klo.
 const SOURCE_ALIASES: Record<DataColumn, readonly string[]> = {
   Sarja: ["sarja"],
-  Pvm: ["pvm", "päivä", "paiva", "päivämäärä", "paivamaara"],
-  Kello: ["kello", "klo", "aika"],
-  Kenttä: ["kenttä", "kentta", "halli", "pelipaikka"],
-  Koti: ["koti", "kotijoukkue", "koti joukkue"],
-  Vieras: ["vieras", "vierasjoukkue", "vieras joukkue"],
+  Pvm: ["pvm"],
+  Kello: ["kello", "klo"],
+  Kenttä: ["kenttä"],
+  Koti: ["koti"],
+  Vieras: ["vieras"],
 }
 
 const DATA_COLUMNS: readonly DataColumn[] = ["Sarja", "Pvm", "Kello", "Kenttä", "Koti", "Vieras"]
-
-const CLOCK = /^(\d{1,2})[:.](\d{2})(?::(\d{2}))?$/
 
 export function parseYear(value: string | undefined): number {
   const year = Number.parseInt(value ?? "", 10)
@@ -101,7 +99,7 @@ function pad(value: number): string {
 
 function readPvm(value: unknown, year: number, column: string): string {
   try {
-    const formatted = formatDateValue(value, year, { allowShort: true })
+    const formatted = formatDateValue(value, year)
     if (!formatted) throw new Error(EXCEL_DATE_FORMAT_ERROR(String(value)))
     return formatted
   } catch (error) {
@@ -112,33 +110,16 @@ function readPvm(value: unknown, year: number, column: string): string {
 
 function readKello(value: unknown): string {
   if (isEmpty(value)) return ""
-
+  // A time cell can arrive as a Date. Text such as "15:00" is already HH:mm.
   if (value instanceof Date) {
     if (Number.isNaN(value.getTime())) return ""
-    const clock = `${pad(value.getHours())}:${pad(value.getMinutes())}`
-    return value.getSeconds() === 0 ? clock : `${clock}:${pad(value.getSeconds())}`
+    return `${pad(value.getHours())}:${pad(value.getMinutes())}`
   }
-
-  const text = String(value).trim()
-  const match = text.match(CLOCK)
-  if (!match) return text
-
-  const hours = Number(match[1])
-  const minutes = Number(match[2])
-  const seconds = match[3] === undefined ? 0 : Number(match[3])
-  if (hours > 23 || minutes > 59 || seconds > 59) return text
-
-  const clock = `${pad(hours)}:${pad(minutes)}`
-  return seconds === 0 ? clock : `${clock}:${pad(seconds)}`
+  return String(value).trim()
 }
 
 function readText(value: unknown): string {
   if (isEmpty(value)) return ""
-  if (value instanceof Date) {
-    if (Number.isNaN(value.getTime())) return ""
-    const formatted = formatDateValue(value, value.getFullYear(), { allowShort: false })
-    return formatted?.split(" ")[0] ?? ""
-  }
   return String(value).trim()
 }
 
@@ -243,18 +224,14 @@ export function transformBuffer(buffer: Buffer, year: number): ExcelSheet {
   return { sheetName: dated.sheetName, rows: transformed }
 }
 
-const ELSA_REFERENCE_COLUMNS = new Set<string>(ELSA_COLUMNS)
-
 export function workbookFromSheet(sheet: ExcelSheet, includeElsa = false): Buffer {
-  const header = OUTPUT_COLUMNS.filter(
-    (column) => includeElsa || !ELSA_REFERENCE_COLUMNS.has(column)
-  )
+  const header = includeElsa
+    ? OUTPUT_COLUMNS
+    : OUTPUT_COLUMNS.filter((column) => column !== ELSA_PVM)
   const rows = includeElsa
     ? sheet.rows
     : sheet.rows.map((row) =>
-        Object.fromEntries(
-          Object.entries(row).filter(([column]) => !ELSA_REFERENCE_COLUMNS.has(column))
-        )
+        Object.fromEntries(Object.entries(row).filter(([column]) => column !== ELSA_PVM))
       )
 
   const workbook = XLSX.utils.book_new()

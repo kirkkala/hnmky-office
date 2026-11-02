@@ -9,25 +9,12 @@ interface DateParts {
   seconds?: number
 }
 
-// eLSA often exports a day and month without a year: "14.12", "14,12", "4.3".
+// eLSA dates are a day and month, "20,09" or "03.10", or a full "14.12.2026".
 const SHORT_DATE = /^(\d{1,2})[.,](\d{1,2})\.?$/
-// A full Finnish date, optionally with a time: "14.12.2026" or "14.12.2026 18:30".
-const FINNISH_DATE =
-  /^(\d{1,2})[./](\d{1,2})[./](\d{2}|\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
-const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?$/
-
-export interface FormatDateOptions {
-  // Year-less values such as "14.12" are only dates when the caller says so.
-  // Other columns may contain scores and decimals that look similar.
-  allowShort: boolean
-}
+const FINNISH_DATE = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/
 
 function pad(value: number): string {
   return String(value).padStart(2, "0")
-}
-
-function expandYear(year: number): number {
-  return year < 100 ? 2000 + year : year
 }
 
 function isRealDate(day: number, month: number, year: number): boolean {
@@ -62,31 +49,7 @@ function parseFinnish(text: string): string | null {
   if (!match) return null
 
   return formatParts(
-    {
-      day: Number(match[1]),
-      month: Number(match[2]),
-      year: expandYear(Number(match[3])),
-      hours: match[4] === undefined ? 0 : Number(match[4]),
-      minutes: match[5] === undefined ? 0 : Number(match[5]),
-      seconds: match[6] === undefined ? 0 : Number(match[6]),
-    },
-    text
-  )
-}
-
-function parseIso(text: string): string | null {
-  const match = text.match(ISO_DATE)
-  if (!match) return null
-
-  return formatParts(
-    {
-      day: Number(match[3]),
-      month: Number(match[2]),
-      year: Number(match[1]),
-      hours: match[4] === undefined ? 0 : Number(match[4]),
-      minutes: match[5] === undefined ? 0 : Number(match[5]),
-      seconds: match[6] === undefined ? 0 : Number(match[6]),
-    },
+    { day: Number(match[1]), month: Number(match[2]), year: Number(match[3]) },
     text
   )
 }
@@ -128,7 +91,7 @@ export function isYearlessDate(value: unknown): boolean {
   if (typeof value !== "string") return false
 
   const text = value.trim()
-  if (!text || FINNISH_DATE.test(text) || ISO_DATE.test(text)) return false
+  if (!text || FINNISH_DATE.test(text)) return false
   return SHORT_DATE.test(text)
 }
 
@@ -136,16 +99,12 @@ export function isYearlessDate(value: unknown): boolean {
  * Returns a date as `dd.mm.yyyy`, or `dd.mm.yyyy HH:mm` when a time is present.
  * Returns null when the value is not a date and should be left unchanged.
  */
-export function formatDateValue(
-  value: unknown,
-  year: number,
-  options: FormatDateOptions
-): string | null {
+export function formatDateValue(value: unknown, year: number): string | null {
   if (value instanceof Date) return formatDateObject(value)
   if (value == null) return null
 
   if (typeof value === "number") {
-    if (!options.allowShort || !Number.isFinite(value)) return null
+    if (!Number.isFinite(value)) return null
     return parseNumber(value, year)
   }
 
@@ -154,12 +113,8 @@ export function formatDateValue(
   const text = value.trim()
   if (!text) return null
 
-  const formatted = parseFinnish(text) ?? parseIso(text)
+  const formatted = parseFinnish(text) ?? parseShort(text, year)
   if (formatted) return formatted
-  if (!options.allowShort) return null
-
-  const short = parseShort(text, year)
-  if (short) return short
 
   throw new Error(EXCEL_DATE_FORMAT_ERROR(text))
 }

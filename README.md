@@ -6,7 +6,7 @@ Helper tools for the HNMKY office. The home page lists the tools. The only tool 
 
 `/games` reads the first worksheet of an eLSA Excel export (`.xlsx` or `.xls`) and builds a sheet for the office.
 
-When the uploaded dates have no year, the form asks for the previous, current, or next year before showing a preview. Changing that year updates the preview and the download. The preview can show 10, 25, or 100 rows when the sheet is larger than that, or every row. Download always saves every row as `hnmky-office.xlsx`.
+When the uploaded dates have no year, the form asks for this year or the next one before showing a preview. Changing that year updates the preview and the download. The preview can show 10, 25, or 100 rows when the sheet is larger than that, or every row. Download always saves every row as `hnmky-office.xlsx`.
 
 Output columns, in order:
 
@@ -24,14 +24,14 @@ Output columns, in order:
 
 `eLSA-pvm` is a check against the formatted date. A switch above the preview includes it in the preview and the download. It is left out unless that switch is on. Other source columns are left out.
 
-Source headers are matched by these names until the real eLSA export is available:
+Source headers from the eLSA sheet:
 
 - Sarja: Sarja
-- Pvm: Pvm, Päivä, Päivämäärä
-- Kello: Kello, Klo, Aika
-- Kenttä: Kenttä, Halli, Pelipaikka
-- Koti: Koti, Kotijoukkue
-- Vieras: Vieras, Vierasjoukkue
+- Pvm: Pvm
+- Kello: Klo or Kello
+- Kenttä: Kenttä
+- Koti: Koti
+- Vieras: Vieras
 
 ## Tech stack
 

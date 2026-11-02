@@ -14,7 +14,3 @@ export const API_YEAR_INVALID = "Vuosi puuttuu tai on virheellinen"
 export const formatErrorMessage = (error: unknown): string => {
   return `Tiedoston prosessointi epäonnistui. ${error instanceof Error ? error.message : String(error)}`
 }
-
-export const logError = (error: unknown): void => {
-  console.error("Detailed error:", error)
-}

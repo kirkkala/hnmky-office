@@ -27,7 +27,7 @@ describe("transformBuffer", () => {
     const buffer = toBuffer([
       ["Sarja", "Pvm", "Klo", "Kenttä", "Koti", "Vieras", "Pisteet", "Huomio"],
       ["M1D", "14.12", "18:30", "Monnari", "HNMKY", "BC Nokia", 12.5, "14.12.2025"],
-      ["", 4.03, "9:00", "", "HNMKY", "Pyrintö", 2, "14.12"],
+      ["", 4.03, "09:00", "", "HNMKY", "Pyrintö", 2, "14.12"],
     ])
 
     expect(transformBuffer(buffer, 2026)).toEqual({
@@ -55,10 +55,10 @@ describe("transformBuffer", () => {
     })
   })
 
-  it("accepts common eLSA header names and leaves JOJO and HUOM empty", () => {
+  it("reads the eLSA headers and leaves JOJO and HUOM empty", () => {
     const buffer = toBuffer([
-      ["#", "Päivä", "Aika", "Halli", "Kotijoukkue", "Vierasjoukkue", "Tulos", "JOJO", "Huom"],
-      [1, "14.12", "18.30", "Monnari", "HNMKY", "BC Nokia", "33-50", "täytetty", "muistiinpano"],
+      ["Nro", "Sarja", "Pv", "Pvm", "Klo", "Kenttä", "Koti", "Vieras", "Tulos"],
+      [1, "M1D", "Su", "14.12", "18:30", "Monnari", "HNMKY", "BC Nokia", "33-50"],
     ])
 
     const row = transformBuffer(buffer, 2026).rows[0]
@@ -66,6 +66,7 @@ describe("transformBuffer", () => {
     expect(Object.keys(row)).toEqual([...OUTPUT_COLUMNS])
     expect(row).toEqual({
       ...emptyOffice,
+      Sarja: "M1D",
       Pvm: "14.12.2026",
       Kello: "18:30",
       [ELSA_PVM]: "14.12",

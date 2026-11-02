@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-import { API_FILE_MISSING, formatErrorMessage, logError } from "@/utils/error"
+import { API_FILE_MISSING, formatErrorMessage } from "@/utils/error"
 import { datesNeedYear, parseYear, transformBuffer, workbookFromSheet } from "@/utils/excel"
 import { parseFormData } from "@/utils/formData"
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    logError(error)
+    console.error(error)
     return NextResponse.json({ message: formatErrorMessage(error) }, { status: 500 })
   }
 }
