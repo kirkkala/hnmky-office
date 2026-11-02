@@ -168,11 +168,7 @@ export default function UploadForm() {
             }
             label="Näytä alkuperäinen eLSA-Excelin päivämäärä muunnoksen tarkistusta varten"
           />
-          <Preview
-            rows={preview.data}
-            total={preview.total}
-            showElsa={includeElsa}
-          />
+          <Preview rows={preview.data} total={preview.total} showElsa={includeElsa} />
           <Box component="form" onSubmit={(event) => void handleDownload(event)} sx={{ mt: 3 }}>
             <Button
               type="submit"
