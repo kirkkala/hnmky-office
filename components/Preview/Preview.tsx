@@ -12,15 +12,12 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup"
 import Typography from "@mui/material/Typography"
 import { useState } from "react"
 
-import { ELSA_PVM } from "@/utils/columns"
-
 const PREVIEW_LIMITS = [10, 25, 100] as const
 type PreviewLimit = (typeof PREVIEW_LIMITS)[number] | "all"
 
 interface PreviewProps {
   rows: Record<string, unknown>[]
   total: number
-  showElsa: boolean
 }
 
 function cellText(value: unknown): string {
@@ -31,12 +28,12 @@ function cellText(value: unknown): string {
   return JSON.stringify(value)
 }
 
-export default function Preview({ rows, total, showElsa }: PreviewProps) {
+export default function Preview({ rows, total }: PreviewProps) {
   const [limit, setLimit] = useState<PreviewLimit>(10)
 
   if (!rows.length) return null
 
-  const columns = Object.keys(rows[0]).filter((column) => showElsa || column !== ELSA_PVM)
+  const columns = Object.keys(rows[0])
   const choices = PREVIEW_LIMITS.filter((option) => option < rows.length)
   const active = choices.some((option) => option === limit) ? limit : "all"
   const visibleRows = active === "all" ? rows : rows.slice(0, active)

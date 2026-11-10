@@ -3,10 +3,6 @@
 import Alert from "@mui/material/Alert"
 import AlertTitle from "@mui/material/AlertTitle"
 import Box from "@mui/material/Box"
-import FormControlLabel from "@mui/material/FormControlLabel"
-import MenuItem from "@mui/material/MenuItem"
-import Switch from "@mui/material/Switch"
-import TextField from "@mui/material/TextField"
 import Typography from "@mui/material/Typography"
 import { useState } from "react"
 
@@ -17,25 +13,18 @@ import Button from "../Button/Button"
 import FileUpload from "../FileUpload/FileUpload"
 
 interface PreviewResponse {
-  needsYear?: boolean
-  total?: number
-  data?: Record<string, unknown>[]
+  total: number
+  data: Record<string, unknown>[]
   message?: string
 }
 
 export default function UploadForm() {
-  const currentYear = new Date().getFullYear()
-  const years = [currentYear, currentYear + 1]
-
-  const [year, setYear] = useState("")
-  const [needsYear, setNeedsYear] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [preview, setPreview] = useState<PreviewResponse | null>(null)
-  const [includeElsa, setIncludeElsa] = useState(false)
 
-  const fetchPreview = async (nextFiles: File[], nextYear: string): Promise<void> => {
+  const fetchPreview = async (nextFiles: File[]): Promise<void> => {
     const file = nextFiles[0]
     if (!file) {
       setPreview(null)
@@ -48,39 +37,19 @@ export default function UploadForm() {
     try {
       const formData = new FormData()
       formData.append("files", file)
-      formData.append("year", nextYear)
 
       const response = await fetch("/api/preview", { method: "POST", body: formData })
       const data = (await response.json()) as PreviewResponse
 
       if (!response.ok) {
-        throw new Error(data.message || "Excelin lukeminen epäonnistui")
+        throw new Error(data.message || "Tiedoston lukeminen epäonnistui")
       }
 
-      if (data.needsYear && !nextYear) {
-        setNeedsYear(true)
-        setPreview(null)
-        return
-      }
-
-      setNeedsYear(Boolean(data.needsYear))
       setPreview(data)
     } catch (err) {
       setPreview(null)
-      setError(err instanceof Error ? err.message : "Excelin lukeminen epäonnistui")
+      setError(err instanceof Error ? err.message : "Tiedoston lukeminen epäonnistui")
     }
-  }
-
-  const handleFilesChange = (nextFiles: File[]): void => {
-    setFiles(nextFiles)
-    setYear("")
-    setNeedsYear(false)
-    void fetchPreview(nextFiles, "")
-  }
-
-  const handleYearChange = (nextYear: string): void => {
-    setYear(nextYear)
-    if (files.length > 0) void fetchPreview(files, nextYear)
   }
 
   const handleDownload = async (event: React.SyntheticEvent<HTMLFormElement>): Promise<void> => {
@@ -94,8 +63,6 @@ export default function UploadForm() {
 
       const formData = new FormData()
       formData.append("files", file)
-      formData.append("year", year)
-      formData.append("elsa", includeElsa ? "1" : "0")
 
       const response = await fetch("/api/upload", { method: "POST", body: formData })
 
@@ -123,32 +90,17 @@ export default function UploadForm() {
   return (
     <Box sx={{ mb: 4 }}>
       <Typography sx={{ mb: 3 }}>
-        Lisää eLSA-Excel ja saat vähän paremman pelien asettelua varten.
+        Lisää eLSA-tiedosto ja saat vähän paremman pelien asettelua varten.
       </Typography>
 
-      <FileUpload files={files} onFilesChange={handleFilesChange} label="eLSA Excel-tiedosto" />
-
-      {needsYear && (
-        <TextField
-          select
-          id="year"
-          label="Vuosi"
-          value={year}
-          onChange={(event) => handleYearChange(event.target.value)}
-          helperText="Ladatussa Excelissä ei ole vuotta. Valitse oikea vuosi."
-          fullWidth
-          sx={{ mb: 3 }}
-        >
-          <MenuItem value="" disabled>
-            Valitse vuosi
-          </MenuItem>
-          {years.map((option) => (
-            <MenuItem key={option} value={String(option)}>
-              {option}
-            </MenuItem>
-          ))}
-        </TextField>
-      )}
+      <FileUpload
+        files={files}
+        onFilesChange={(nextFiles) => {
+          setFiles(nextFiles)
+          void fetchPreview(nextFiles)
+        }}
+        label="eLSA-tiedosto"
+      />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -162,21 +114,7 @@ export default function UploadForm() {
           <Alert severity="success" sx={{ mb: 2 }}>
             Luettu {preview.total} {preview.total === 1 ? "rivi" : "riviä"}.
           </Alert>
-          <FormControlLabel
-            sx={{
-              alignItems: "center",
-              ml: 0,
-              "& .MuiFormControlLabel-label": { mb: 0, lineHeight: 1.2 },
-            }}
-            control={
-              <Switch
-                checked={includeElsa}
-                onChange={(event) => setIncludeElsa(event.target.checked)}
-              />
-            }
-            label="Näytä alkuperäinen eLSA-Excelin päivämäärä muunnoksen tarkistusta varten"
-          />
-          <Preview rows={preview.data ?? []} total={preview.total ?? 0} showElsa={includeElsa} />
+          <Preview rows={preview.data} total={preview.total} />
           <Box component="form" onSubmit={(event) => void handleDownload(event)} sx={{ mt: 3 }}>
             <Button type="submit" disabled={loading}>
               {loading ? "Käsitellään..." : "Lataa muunnettu Excel"}

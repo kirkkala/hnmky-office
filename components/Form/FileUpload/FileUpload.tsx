@@ -32,8 +32,9 @@ export default function FileUpload({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
-      "application/vnd.ms-excel": [".xls"],
+      "text/csv": [".csv"],
+      "text/plain": [".csv"],
+      "application/vnd.ms-excel": [".csv"],
     },
     multiple: false,
   })
@@ -85,7 +86,7 @@ export default function FileUpload({
             ? "Pudota tiedosto tähän..."
             : hasFile
               ? "Tiedosto lisätty"
-              : "Pudota eLSA-Excel tai klikkaa valitaksesi"}
+              : "Pudota eLSA-tiedosto tai klikkaa valitaksesi"}
         </Typography>
 
         {hasFile ? (
@@ -107,7 +108,7 @@ export default function FileUpload({
           </Box>
         ) : (
           <Typography variant="caption" color="text.secondary" sx={{ mb: 0 }}>
-            Tuetut tiedostomuodot: .xlsx
+            Tuetut tiedostomuodot: .csv
           </Typography>
         )}
       </Box>

@@ -1,165 +1,66 @@
 import * as XLSX from "xlsx"
 
-import { ELSA_PVM } from "@/utils/columns"
-import { OUTPUT_COLUMNS, datesNeedYear, transformBuffer, workbookFromSheet } from "@/utils/excel"
+import { OUTPUT_COLUMNS, transformBuffer, workbookFromSheet } from "@/utils/excel"
 
-function toBuffer(rows: unknown[][], sheetName = "Ottelut"): Buffer {
-  const sheet = XLSX.utils.aoa_to_sheet(rows)
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, sheet, sheetName)
-  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer
+function toBuffer(csv: string): Buffer {
+  return Buffer.from(csv, "latin1")
 }
 
-const emptyOffice = {
-  Sarja: "",
-  [ELSA_PVM]: "",
-  Pvm: "",
-  Kello: "",
-  Kenttä: "",
-  Koti: "",
-  Vieras: "",
-  JOJO: "",
-  HUOM: "",
-}
+const header = "otteluid;sarjanimi;pvm;klo;kentta;kenttanimi;kotisiisti;vierassiisti;kotiseuranimi"
 
 describe("transformBuffer", () => {
-  it("projects games onto the office columns and formats dates", () => {
-    const buffer = toBuffer([
-      ["Sarja", "Pvm", "Klo", "Kenttä", "Koti", "Vieras", "Pisteet", "Huomio"],
-      ["M1D", "14.12", "18:30", "Monnari", "HNMKY", "BC Nokia", 12.5, "14.12.2025"],
-      ["", 4.03, "09:00", "", "HNMKY", "Pyrintö", 2, "14.12"],
-    ])
+  it("copies the eLSA columns and keeps the date range and team names", () => {
+    const buffer = toBuffer(
+      [
+        header,
+        "1006914;19-vuotiaat pojat, SM-sarja;9.11-15.11.2026;;135809;;HNMKY/ Black;BC Nokia;Helsingin NMKY",
+        "1005050;Miesten II divisioona Eteläinen alue;9.11-15.11.2026;;462;;HNMKY ;Yökoris Knights;Helsingin NMKY",
+      ].join("\n")
+    )
 
-    expect(transformBuffer(buffer, 2026)).toEqual({
-      sheetName: "Ottelut",
+    expect(transformBuffer(buffer)).toEqual({
+      sheetName: "Sheet1",
       rows: [
         {
-          ...emptyOffice,
-          Sarja: "M1D",
-          Pvm: "14.12.2026",
-          Kello: "18:30",
-          [ELSA_PVM]: "14.12",
-          Kenttä: "Monnari",
-          Koti: "HNMKY",
+          Sarja: "19-vuotiaat pojat, SM-sarja",
+          Pvm: "9.11-15.11.2026",
+          Kello: "",
+          Kenttä: "",
+          Koti: "HNMKY/ Black",
           Vieras: "BC Nokia",
+          JOJO: "",
+          HUOM: "",
         },
         {
-          ...emptyOffice,
-          Pvm: "04.03.2026",
-          Kello: "09:00",
-          [ELSA_PVM]: "4,03",
-          Koti: "HNMKY",
-          Vieras: "Pyrintö",
+          Sarja: "Miesten II divisioona Eteläinen alue",
+          Pvm: "9.11-15.11.2026",
+          Kello: "",
+          Kenttä: "",
+          Koti: "HNMKY ",
+          Vieras: "Yökoris Knights",
+          JOJO: "",
+          HUOM: "",
         },
       ],
     })
   })
 
-  it("reads the eLSA headers and leaves JOJO and HUOM empty", () => {
-    const buffer = toBuffer([
-      ["Nro", "Sarja", "Pv", "Pvm", "Klo", "Kenttä", "Koti", "Vieras", "Tulos"],
-      [1, "M1D", "Su", "14.12", "18:30", "Monnari", "HNMKY", "BC Nokia", "33-50"],
-    ])
-
-    const row = transformBuffer(buffer, 2026).rows[0]
-
-    expect(Object.keys(row)).toEqual([...OUTPUT_COLUMNS])
-    expect(row).toEqual({
-      ...emptyOffice,
-      Sarja: "M1D",
-      Pvm: "14.12.2026",
-      Kello: "18:30",
-      [ELSA_PVM]: "14.12",
-      Kenttä: "Monnari",
-      Koti: "HNMKY",
-      Vieras: "BC Nokia",
-    })
-  })
-
-  it("keeps the original date text, including a decimal comma", () => {
-    const buffer = toBuffer([
-      ["Pvm", "Klo"],
-      ["20,09", "15:00"],
-      ["03.10", "09:00"],
-      [24.1, "10:45"],
-      [20.09, "12:30"],
-    ])
-
-    const rows = transformBuffer(buffer, 2026).rows
-
-    expect(rows.map((row) => row[ELSA_PVM])).toEqual(["20,09", "03.10", "24,1", "20,09"])
-    expect(rows.map((row) => row.Kello)).toEqual(["15:00", "09:00", "10:45", "12:30"])
-    expect(rows.map((row) => row.Pvm)).toEqual([
-      "20.09.2026",
-      "03.10.2026",
-      "24.10.2026",
-      "20.09.2026",
-    ])
-  })
-
-  it("moves a time stuck on the date into Kello", () => {
-    const buffer = toBuffer([["Pvm"], [new Date(2026, 9, 28, 18, 30)]])
-    const row = transformBuffer(buffer, 2026).rows[0]
-
-    expect(row.Pvm).toBe("28.10.2026")
-    expect(row.Kello).toBe("18:30")
-    expect(row[ELSA_PVM]).not.toBe("28.10.2026")
-  })
-
-  it("keeps a separate time when the date also has one", () => {
-    const buffer = toBuffer([
-      ["Pvm", "Klo"],
-      [new Date(2026, 9, 28, 18, 30), "19:00"],
-    ])
-
-    const row = transformBuffer(buffer, 2026).rows[0]
-
-    expect(row.Pvm).toBe("28.10.2026")
-    expect(row.Kello).toBe("19:00")
-  })
-
-  it("names the row when a date cell cannot be read", () => {
-    const buffer = toBuffer([["Pvm"], ["ei päivää"]])
-
-    expect(() => transformBuffer(buffer, 2026)).toThrow('Rivi 2: Sarake "Pvm"')
-  })
-
-  it("needs a year when dates have only a day and month", () => {
-    const buffer = toBuffer([["Pvm"], ["20,09"], ["03.10"], [24.1]])
-
-    expect(datesNeedYear(buffer)).toBe(true)
-  })
-
-  it("does not need a year when every date already has one", () => {
-    const buffer = toBuffer([["Pvm"], ["14.12.2026"], ["3.10.2026"]])
-
-    expect(datesNeedYear(buffer)).toBe(false)
-  })
-
-  it("rejects an empty sheet", () => {
-    const buffer = toBuffer([["Pvm", "Klo"]])
-
-    expect(() => transformBuffer(buffer, 2026)).toThrow("Excelistä ei löytynyt rivejä")
+  it("rejects an empty file", () => {
+    expect(() => transformBuffer(toBuffer(`${header}\n`))).toThrow("Tiedostosta ei löytynyt rivejä")
   })
 
   it("names the headers it could not match", () => {
-    const buffer = toBuffer([
-      ["Foo", "Bar"],
-      ["a", "b"],
-    ])
+    const buffer = toBuffer("Foo;Bar\na;b\n")
 
-    expect(() => transformBuffer(buffer, 2026)).toThrow(
-      "Excelin sarakkeita ei tunnistettu (Foo, Bar)"
-    )
+    expect(() => transformBuffer(buffer)).toThrow("Tiedoston sarakkeita ei tunnistettu (Foo, Bar)")
   })
 
   it("writes the office header row", () => {
-    const buffer = toBuffer([
-      ["Sarja", "Pvm", "Kello", "Kenttä", "Koti", "Vieras"],
-      ["M1D", "14.12", "18:30", "Monnari", "HNMKY", "BC Nokia"],
-    ])
+    const buffer = toBuffer(
+      `${header}\n1;19-vuotiaat pojat, SM-sarja;9.11-15.11.2026;;;;HNMKY;BC Nokia;Helsingin NMKY\n`
+    )
 
-    const written = workbookFromSheet(transformBuffer(buffer, 2026), true)
+    const written = workbookFromSheet(transformBuffer(buffer))
     const workbook = XLSX.read(written, { type: "buffer" })
     const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[workbook.SheetNames[0]], {
       header: 1,
@@ -168,23 +69,7 @@ describe("transformBuffer", () => {
 
     expect(rows).toEqual([
       [...OUTPUT_COLUMNS],
-      ["M1D", "14.12", "14.12.2026", "18:30", "Monnari", "HNMKY", "BC Nokia", "", ""],
+      ["19-vuotiaat pojat, SM-sarja", "9.11-15.11.2026", "", "", "HNMKY", "BC Nokia", "", ""],
     ])
-  })
-
-  it("leaves the eLSA reference columns out of the download unless asked", () => {
-    const buffer = toBuffer([
-      ["Sarja", "Pvm", "Kello", "Kenttä", "Koti", "Vieras"],
-      ["M1D", "14.12", "18:30", "Monnari", "HNMKY", "BC Nokia"],
-    ])
-
-    const written = workbookFromSheet(transformBuffer(buffer, 2026))
-    const workbook = XLSX.read(written, { type: "buffer" })
-    const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[workbook.SheetNames[0]], {
-      header: 1,
-      defval: "",
-    })
-
-    expect(rows[0]).toEqual(["Sarja", "Pvm", "Kello", "Kenttä", "Koti", "Vieras", "JOJO", "HUOM"])
   })
 })
