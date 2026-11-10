@@ -8,7 +8,7 @@ const TOOLS = [
     path: "/games",
     title: "Otteluiden siirtohässäkkä",
     description:
-      "Muunna joukkueiden ottelut eLSA-tiedostosta muotoon, jolla otteluita voi organisoida.",
+      "Muunna sarjojen aikataulutus eLSA:n .csv -tiedostosta exceliin pelien asettelua varten.",
     action: "Avaa työkalu",
   },
 ] as const

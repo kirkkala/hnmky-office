@@ -86,7 +86,7 @@ export default function FileUpload({
             ? "Pudota tiedosto tähän..."
             : hasFile
               ? "Tiedosto lisätty"
-              : "Pudota eLSA-tiedosto tai klikkaa valitaksesi"}
+              : "Pudota eLSA:n .csv -tiedosto tai klikkaa valitaksesi"}
         </Typography>
 
         {hasFile ? (

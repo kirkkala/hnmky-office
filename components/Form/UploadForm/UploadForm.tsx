@@ -90,7 +90,7 @@ export default function UploadForm() {
   return (
     <Box sx={{ mb: 4 }}>
       <Typography sx={{ mb: 3 }}>
-        Lisää eLSA-tiedosto ja saat vähän paremman pelien asettelua varten.
+        Lisää eLSA:n .csv -tiedosto, esikatsele ja lataa excel tiedosto pelien asettelua varten.
       </Typography>
 
       <FileUpload
