@@ -15,7 +15,9 @@ describe("FileUpload", () => {
 
   it("shows dropzone instructions when no files", () => {
     render(<FileUpload files={[]} onFilesChange={vi.fn()} />)
-    expect(screen.getByText("Pudota eLSA-tiedosto tai klikkaa valitaksesi")).toBeInTheDocument()
+    expect(
+      screen.getByText("Pudota eLSA:n .csv -tiedosto tai klikkaa valitaksesi")
+    ).toBeInTheDocument()
     expect(screen.getByText("Tuetut tiedostomuodot: .csv")).toBeInTheDocument()
   })
 
